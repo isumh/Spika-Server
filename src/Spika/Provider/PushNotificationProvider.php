@@ -7,6 +7,8 @@ use Spika\Db\MySql;
 use Silex\Application;
 use Silex\ServiceProviderInterface;
 
+use Spika\BaiduPush\Channel;
+
 define('SP_TIMEOUT',10);
 
 class PushNotificationProvider implements ServiceProviderInterface
@@ -23,11 +25,14 @@ class PushNotificationProvider implements ServiceProviderInterface
         $app['sendDevAPN'] = $app->protect(function($tokens,$payload) use ($self,$app) {           
             $self->sendAPN($app['pushnotification.options']['APNDevPem'],$tokens,$payload,'ssl://gateway.sandbox.push.apple.com:2195',$app);
         });
-       
+
         $app['sendGCM'] = $app->protect(function($payload) use ($self,$app) {           
             $self->sendGCM($app['pushnotification.options']['GCMAPIKey'],$payload,$app);
         });
-       
+
+        $app['sendBaiduPush'] = $app->protect(function($payload) use ($self,$app) {           
+            $self->sendBaiduPush($app['pushnotification.options']['BAIDUAPIKEY'],$app['pushnotification.options']['BAIDUSECRETKEY'],$payload,$app);
+        });
     }
 
     public function boot(Application $app)
@@ -182,6 +187,49 @@ class PushNotificationProvider implements ServiceProviderInterface
 
         return $result;
 
+    }
+
+    function sendBaiduPush($apiKey,$secretKey,$messageContent,$app = null){
+        $channel = new Channel ($apiKey, $secretKey) ;
+        //推送消息到某个user，设置push_type = 1; 
+        //推送消息到一个tag中的全部user，设置push_type = 2;
+        //推送消息到该app中的全部user，设置push_type = 3;
+        $push_type = 1; //推送单播消息
+        $app['monolog']->addDebug('message Conten: ' .  $messageContent['userid'][0]);
+        if($push_type==1)
+            $optional[Channel::USER_ID] = $messageContent['userid'][0]; //如果推送单播消息，需要指定user
+        else
+            $optional[Channel::TAG_NAME] = $tag_name;  //如果推送tag消息，需要指定tag_name
+
+        //指定发到android设备
+        $optional[Channel::DEVICE_TYPE] = 3;
+        //指定消息类型为通知
+        $optional[Channel::MESSAGE_TYPE] = 0;
+        //通知类型的内容必须按指定内容发送，示例如下：
+        $fields = array(
+            'title'                     => "注意",
+            'notification_basic_style'  =>5,
+            'open_type'         =>2,
+            'description'               =>$messageContent['description'],//"新消息",
+            'customContent'   =>"test",
+            'custom_content'        => $messageContent['content'],
+        );
+
+
+        $message = json_encode($fields);
+        
+        $message_key = "msg_key";
+        $app['monolog']->addDebug("before hjf: " . $apiKey . " " . $secretKey);
+        $ret = $channel->pushMessage ( $push_type, $message, $message_key, $optional) ;
+        if ( false === $ret )
+        {
+            $app['monolog']->addDebug('ERROR NUMBER: ' . $channel->errno() . ' ERROR MESSAGE: ' . $channel->errmsg());
+        }
+        else
+        {
+            $app['monolog']->addDebug('SUCC, ' . __FUNCTION__ . ' OK!!!!! result:' . print_r($ret, true));
+        }
+        return $ret;
     }
     
 }

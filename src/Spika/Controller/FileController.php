@@ -35,16 +35,19 @@ class FileController extends SpikaBaseController
                 
             $fileID = $request->get('file');
             $filePath = __DIR__.'/../../../'.FileController::$fileDirName."/".basename($fileID);
-            
+            $app['monolog']->addDebug('hjf file cache0 '.$filePath);
             if(file_exists($filePath)){
+                $app['monolog']->addDebug('hjf file cache 1');
                     $response->setPublic();
                     $response->setLastModified(filemtime($filePath));
                     if ($response->isNotModified($request)) {
+                        $app['monolog']->addDebug('hjf file cache 2');
                         return $response;
                     }
     
                     $response = $app->sendFile($filePath);
                     $response->setETag(md5($response->getContent()));
+                    $app['monolog']->addDebug('hjf new file');
                     return $response;
                     
             }else{

@@ -31,9 +31,9 @@ class AsyncTaskController extends SpikaBaseController
             set_time_limit(60 * 10);
             
             $host = $request->getHttpHost();
-            if($host != "localhost"){
-                return $self->returnErrorResponse("invalid access to internal API");
-            }
+            // if($host != "localhost"){
+            //     return $self->returnErrorResponse("invalid access to internal API");
+            // }
 
             $requestBody = $request->getContent();
             $requestData = json_decode($requestBody,true);
@@ -68,22 +68,41 @@ class AsyncTaskController extends SpikaBaseController
 
             // send Android push notification
             if(!empty($toUser['android_push_token'])){
-
                 $registrationIDs = array($toUser['android_push_token']);
+                //$app['monolog']->addDebug("begin to send push " . $app['pushnotification.options']['USEGCMPUSH']);
+                if($app['pushnotification.options']['USEGCMPUSH']){
+                //if(false){
 
-                $fields = array(
-                                'registration_ids' => $registrationIDs,
-                                'data' => array( 
-                                        "message" => $pushnotificationMessage, 
-                                        "fromUser" => $fromUserId,
-                                        "fromUserName"=>$fromUser['name'],
-                                        "type" => "user", 
-                                        "groupId" => ""
-                                        ),
-                               );
+                    $fields = array(
+                                    'registration_ids' => $registrationIDs,
+                                    'data' => array( 
+                                            "message" => $pushnotificationMessage, 
+                                            "fromUser" => $fromUserId,
+                                            "fromUserName"=>$fromUser['name'],
+                                            "type" => "user", 
+                                            "groupId" => ""
+                                            ),
+                                   );
 
-                $payload = json_encode($fields);
-                $app['sendGCM']($payload,$app);
+                    $payload = json_encode($fields);
+                    $app['sendGCM']($payload,$app);
+                } 
+                else {
+                    $baiduFields=array(
+                        'userid'=>$registrationIDs,
+                        'tagName'=>null,
+                        'description'=>$pushnotificationMessage,
+                        'content'=>array(
+                                "message" => $pushnotificationMessage, 
+                                "fromUser" => $fromUserId,
+                                "fromUserName"=>$fromUser['name'],
+                                "type" => "user", 
+                                "groupId" => ""
+                            )
+                    );
+                    //$baiduPayload=json_encode($baiduFields);
+                    $app['sendBaiduPush']($baiduFields,$app);
+                }
             }
 
             return "";
@@ -170,4 +189,3 @@ class AsyncTaskController extends SpikaBaseController
 
 }
 
-?>

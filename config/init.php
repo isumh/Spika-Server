@@ -11,12 +11,12 @@
  
  
 /* change here */
-define('ROOT_URL', isset($_ENV['SPIKA_ROOT_URL']) ? $_ENV['SPIKA_ROOT_URL'] : "http://localhost:8080/wwwroot");
-define('LOCAL_ROOT_URL', isset($_ENV['SPIKA_LOCAL_ROOT_URL']) ? $_ENV['SPIKA_LOCAL_ROOT_URL'] : "http://localhost/wwwroot");
-define("MySQL_HOST", isset($_ENV['MySQL_HOST']) ? $_ENV['MySQL_HOST'] : "localhost");
-define('MySQL_DBNAME', isset($_ENV['MySQL_DBNAME']) ? $_ENV['MySQL_DBNAME'] : "spikadb");
+define('ROOT_URL', isset($_ENV['SPIKA_ROOT_URL']) ? $_ENV['SPIKA_ROOT_URL'] : "http://172.19.67.71:8080/wwwroot");
+define('LOCAL_ROOT_URL', isset($_ENV['SPIKA_LOCAL_ROOT_URL']) ? $_ENV['SPIKA_LOCAL_ROOT_URL'] : "http://172.19.67.71:8080/wwwroot");
+define("MySQL_HOST", isset($_ENV['MySQL_HOST']) ? $_ENV['MySQL_HOST'] : "172.19.67.71");
+define('MySQL_DBNAME', isset($_ENV['MySQL_DBNAME']) ? $_ENV['MySQL_DBNAME'] : "hjfSpika1");
 define('MySQL_USERNAME', isset($_ENV['MySQL_USERNAME']) ? $_ENV['MySQL_USERNAME'] : "root");
-define('MySQL_PASSWORD', isset($_ENV['MySQL_PASSWORD']) ? $_ENV['MySQL_PASSWORD'] : "yourpassword");
+define('MySQL_PASSWORD', isset($_ENV['MySQL_PASSWORD']) ? $_ENV['MySQL_PASSWORD'] : "public");
 /* end change here */
 
 define('AdministratorEmail', isset($_ENV['SPIKA_AdministratorEmail']) ? $_ENV['SPIKA_AdministratorEmail'] : "admin@spikaapp.com");
@@ -40,6 +40,9 @@ define("ACTIVITY_SUMMARY_GROUP_MESSAGE", "group_posts");
 define("APN_DEV_CERT_PATH", "files/apns-dev.pem");
 define("APN_PROD_CERT_PATH", "files/apns-prod.pem");
 define("GCM_API_KEY","AIzaSyDOkqeO0MZ_igwH_zGyy95DO1ahM8-Ebrw");
+define("USE_GCM_PUSH",false);
+define("BAIDU_API_KEY", "WFClDL8nNkIt8Rqk1YQO6HAW");
+define("BAIDU_SECRET_KEY", "DBxZv7VGSnGFlWsZWOPT2YXoFD2zBwRL");
 
 define("SEND_EMAIL_METHOD",1); // 0: dont send 1:local smtp 2:gmail
 define("GMAIL_USER",""); 
