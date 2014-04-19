@@ -1,326 +1,4 @@
-(function() {
-    
-    // handles window ( mainly size change )
-    var windowManager = {
-        
-        init : function(window){
-            
-            var self = this;
-            $(window).resize(function() {
-                self.onResize();
-            });
-            
-            this.onResize();
-            
-        },
-        onResize : function(){
-            var headerHeight = $('.navbar-static-top').height();
-            var chatboxHeight =  $('#chat_block').height();
 
-            $('body').height(window.innerHeight);
-            $('.sidebar-collapse .tab-content').height(window.innerHeight - headerHeight - 50);
-            $('#conversation_block').height(window.innerHeight - chatboxHeight - headerHeight - 50);
-        }  
-        
-    };
-    
-    // handles modal dialogs
-    var alertManager = {
-        
-        showAlert : function(title,message,buttonText,onClose){
-            
-            $('#modalAlertDialog #modalTitle').text(title);
-            $('#modalAlertDialog #modalText').text(message);
-            $('#modalAlertDialog #modalDismissButton').text(buttonText);
-            
-            $('#modalAlertDialog').modal('show');
-            $('#modalAlertDialog').on('hide.bs.modal', function (e) {
-                onClose();
-            })
-        },
-        showError : function(message){
-            
-            $('#modalAlertDialog #modalTitle').text(_lang.labelErrorDialogTitle);
-            $('#modalAlertDialog #modalText').text(message);
-            $('#modalAlertDialog #modalDismissButton').text(_lang.labelCloseButton);
-            
-            $('#modalAlertDialog').modal('show');
-        },
-        showLoading : function(){
-            $('#modalLoading').modal('show');
-        },
-        hideLoading : function(){
-            $('#modalLoading').modal('hide');
-        }
-            
-    };
-    
-    // navigation bar renderer
-    var navigationBarManager = {
-        
-        userList : {},
-        groupList : {},
-        unreadMessageNumPerUser : {},
-        unreadMessageNumPerGroup : {},        
-        templateUserRow : _.template('<li><a href="javascript:_chatManager.startPrivateChat(<%= _id %>)"><%= img %><%= name %></a></li>'),
-        templateGroupsRow : _.template('<li><a href="javascript:_chatManager.startGroupChat(<%= _id %>)"><%= img %><%= name %></a></li>'),
-        avatarImage : _.template('<img src="' + _consts.RootURL + '/api/filedownloader?file=<%= avatar_thumb_file_id %>" alt="" width="40" height="40" class="person_img img-thumbnail" />'),
-        avatarNoImage : _.template('<img src="http://dummyimage.com/60x60/e2e2e2/7a7a7a&text=nopicture" alt="" width="40" height="40" class="person_img img-thumbnail" />'),
-        templateRecentActivityRowUser : _.template('<li><a href="javascript:_chatManager.startPrivateChat(<%= userId %>)"><%= img %><i class="fa fa-user"></i> <%= name %> <%= count %></a></li>'),
-        templateRecentActivityRowGroup : _.template('<li><a href="javascript:_chatManager.startGroupChat(<%= groupId %>)"><%= img %><i class="fa fa-users"></i> <%= name %> <%= count %></a></li>'),
-        
-        renderContacts : function(userList){
-            
-            var self = this;
-            _spikaClient.getContacts(function(users){
-                
-                var html = '';
-                _.each(users, function(data){
-                    
-                    if(_.isEmpty(data.avatar_thumb_file_id)){
-                        data.img = self.avatarNoImage(data);
-                    }else{
-                        data.img = self.avatarImage(data);
-                    }
-                    
-                    html += self.templateUserRow(data);
-                    
-                });
-                
-                $('#tab-users ul').html(html);
-                
-                
-            },function(errorMessage){
-            
-                alertManager.showError(_lang.messageGeneralError);
-                
-            });
-            
-        },
-        renderGroups : function(userList){
-        
-            var self = this;
-            _spikaClient.getFavoriteGroups(function(groups){
-                
-                var html = '';
-                _.each(groups, function(data){
-
-                    if(_.isEmpty(data.avatar_thumb_file_id)){
-                        data.img = self.avatarNoImage(data);
-                    }else{
-                        data.img = self.avatarImage(data);
-                    }
-                    
-                    html += self.templateGroupsRow(data);
-                    
-                });
-                
-                $('#tab-groups ul').html(html);
-                
-            },function(errorMessage){
-            
-                alertManager.showError(_lang.messageGeneralError);
-                
-            });
-            
-        },
-        renderRecentActivity : function(userList){
-        
-            var self = this;
-            
-            this.userList = {};
-            this.groupList = {};
-            this.unreadMessageNumPerUser = {};
-            this.unreadMessageNumPerGroup = {};   
-            
-            _spikaClient.getActivitySummary(function(data){
-
-                var html = '';
-                var totalUnreadMessage = 0;
-                
-                var usersId = new Array();
-                var groupsId = new Array();
-                
-                if(data.rows[0].value.recent_activity != undefined){
-                
-                    if(data.rows[0].value.recent_activity.direct_messages != undefined){
-                    
-                        var directMessages = data.rows[0].value.recent_activity.direct_messages.notifications;
-                        
-                        for(index in directMessages){
-                            var directMessageRow = directMessages[index];
-                            var fromUserId = directMessageRow.messages[0]['from_user_id'];
-                            var timestamp = directMessageRow.messages[0]['modified'];
-                            var key = timestamp + + fromUserId;
-                            
-                            usersId.push(fromUserId);
-                            
-                            if(_.isUndefined(self.unreadMessageNumPerUser[key])){
-                                self.unreadMessageNumPerUser[key] = {count:0,userId:fromUserId};
-                            }
-                            
-                            self.unreadMessageNumPerUser[key].count += parseInt(directMessageRow.count);
-                            
-                        }
-                        
-                    }
-                    
-                    if(data.rows[0].value.recent_activity.group_posts != undefined){
-                    
-                        var groupMessages = data.rows[0].value.recent_activity.group_posts.notifications;
-
-                        for(index in groupMessages){
-                            
-                            var groupMessageRow = groupMessages[index];
-                            var groupId = groupMessageRow['target_id'];
-                            var timestamp = groupMessageRow.messages[0]['modified'];
-                            var key = groupId;
-                            
-                            groupsId.push(groupId);
-                            
-                            if(_.isUndefined(self.unreadMessageNumPerGroup[key])){
-                                self.unreadMessageNumPerGroup[key] = {count:0,groupId:groupId};
-                            }
-                            
-                            self.unreadMessageNumPerGroup[key].count += parseInt(groupMessageRow.count);
-                            
-                        }    
-                           
-                    }
-                }                
-                
-                usersId = _.uniq(usersId);
-                groupsId = _.uniq(groupsId);
-                
-                _spikaClient.getUser(usersId.join(','),function(data){
-                    
-                    if(usersId.length == 1){
-                        data = [data];
-                    }
-                    
-                    for(userid in data){
-                        
-                        self.userList[data[userid]['_id']] = data[userid];
-                        
-                    }
-                    
-                    _spikaClient.getGroup(groupsId.join(','),function(data){
-                        
-                        if(groupsId.length == 1){
-                            data = [data];
-                        }
-                        
-                        for(groupid in data){
-                            
-                            self.groupList[data[groupid]['_id']] = data[groupid];
-                            
-                        }
-                        
-                        // every information are fetched
-                        self.renderRecentActivityNext();
-                        
-                    },function(errorString){
-                        
-                        alertManager.hideLoading();
-                        
-                    });
-                
-                },function(errorString){
-                    
-                    alertManager.hideLoading();
-                    
-                });
-                
-            },function(errorMessage){
-            
-                alertManager.showError(_lang.messageGeneralError);
-                alertManager.hideLoading();
-                
-            });
-            
-        },
-        renderRecentActivityNext : function(){
-            
-            if(_.isEmpty(this.userList)){
-                return;
-            }
-            
-            if(_.isEmpty(this.groupList)){
-                return;
-            }
-            
-            if(_.isEmpty(this.unreadMessageNumPerUser)){
-                return;
-            }
-            
-            if(_.isEmpty(this.unreadMessageNumPerGroup)){
-                return;
-            }
-            
-            var html = '';
-            
-            var keys = _.keys(this.unreadMessageNumPerUser);
-            keys = keys.reverse();
-            for(var i = 0 ; i < keys.length ; i++){
-                
-                var key = keys[i];
-                var userId = this.unreadMessageNumPerUser[key].userId;
-                var count = this.unreadMessageNumPerUser[key].count;
-                var data = this.userList[userId];
-
-                if(count > 0){
-                    data.count = '(' + count + ')';
-                }else{
-                    data.count = '';
-                }
-                 
-                if(_.isEmpty(data.avatar_thumb_file_id)){
-                    data.img = this.avatarNoImage(data);
-                }else{
-                    data.img = this.avatarImage(data);
-                }
-                
-                data.userId = userId;
-                
-                html += this.templateRecentActivityRowUser(data);
-                
-            }
-            
-            var keys = _.keys(this.unreadMessageNumPerGroup);
-            keys = keys.reverse();
-            for(var i = 0 ; i < keys.length ; i++){
-                
-                var key = keys[i];
-                var groupId = this.unreadMessageNumPerGroup[key].groupId;
-                var count = this.unreadMessageNumPerGroup[key].count;
-                var data = this.groupList[groupId];
-                
-                if(count > 0){
-                    data.count = '(' + count + ')';
-                }else{
-                    data.count = '';
-                }
-                 
-                if(_.isEmpty(data.avatar_thumb_file_id)){
-                    data.img = this.avatarNoImage(data);
-                }else{
-                    data.img = this.avatarImage(data);
-                }
-                
-                data.groupId = groupId;
-
-                html += this.templateRecentActivityRowGroup(data);
-                
-                alertManager.hideLoading();
-                
-            }
-            
-            $('#tab-recent ul').html(html);
-            
-        }
-        
-    }
-    
     // everything for caht
     _chatManager = {
         
@@ -329,12 +7,17 @@
         templateUserInfo : _.template('<div class="person_info"><h5><%= img %><a target="_blank" href="' + _consts.RootURL + '/admin/user/view/<%= from_user_id %>"><%= from_user_name %></a></h5><div class="clear"></div></div>'),
         avatarImage : _.template('<img src="' + _consts.RootURL + '/api/filedownloader?file=<%= avatar_thumb_file_id %>" alt="" width="40" height="40" class="person_img img-thumbnail" />'),
         avatarNoImage : _.template('<img src="http://dummyimage.com/60x60/e2e2e2/7a7a7a&text=nopicture" alt="" width="40" height="40" class="person_img img-thumbnail" />'),
-        templateTextPost : _.template('<div class="post"><div class="timestamp"><%= time %></div><div class="post_content"><%= body %></div></div>'),
-        templatePicturePost : _.template('<div class="post"><div class="timestamp"><%= time %></div><div class="post_content"><a class="img-thumbnail" data-toggle="modal" data-target=".bs-example-modal-lg<%= _id  %>"><img src="' + _consts.RootURL + '/api/filedownloader?file=<%= picture_thumb_file_id %>" height="120" width="120" /></a></div></div><div class="modal fade bs-example-modal-lg<%= _id %>" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"><img src="' + _consts.RootURL + '/api/filedownloader?file=<%= picture_file_id %>" /></div></div></div>'),
-        templateEmoticonPost : _.template('<div class="post"><div class="timestamp"><%= time %></div><div class="post_content"><img src="<%= emoticon_image_url %>" height="120" width="120" /></div></div>'),
-        templateVoicePost : _.template('<div class="post"><div class="timestamp"><%= time %></div><div class="fa fa-play-circle-o fa-4x post_fa"></div><div class="post_content post_media"><%= body %><br /><audio controls><source src="' + _consts.RootURL + '/api/filedownloader?file=<%= voice_file_id %>" width="50" type="audio/wav"><a target="_blank" href="' + _consts.RootURL + '/api/filedownloader?file=<%= voice_file_id %>">' + _lang.listenVoice + '</a></audio></div></div>'),
-        templateVideoPost : _.template('<div class="post"><div class="timestamp"><%= time %></div><div class="fa fa-video-camera fa-4x post_fa"></div><div class="post_content post_media"><%= body %><br /><a target="_blank" href="' + _consts.RootURL + '/api/filedownloader?file=<%= video_file_id %>">' + _lang.watchVideo + '</a></div></div>'),
-        templateLocationPost : _.template('<div class="post"><div class="timestamp"><%= time %></div><div class="fa fa-location-arrow fa-4x post_fa"></div><div class="post_content post_media"><%= body %><br /><a target="_blank" href="http://maps.google.com/?q=<%= latitude %>,<%= longitude %>">' + _lang.openInGoogleMap + '</a></div></div>'),
+        templatePostHolder : _.template('<div class="post userId<%= user_id %>" id="message<%= message_id %>" messageid="<%= message_id %>"><div class="timestamp"><%= deleteicon %> <%= commentsicon %> <%= unreadicon %> <%= time %></div><%= content %></div>'),
+        templateDeleteIcon : _.template('<span type="button" class="btn btn-link deleteIcon" data-toggle="tooltip" data-placement="left" title="<%= deletetime %>"><i class="fa fa-trash-o text-danger"></i></span>'),
+        templateCommentsIcon : _.template('<i class="fa fa-comments-o"></i>'),
+        templateUnreadIcon : _.template('<i class="fa fa-envelope-o"></i>'),
+        templateTextPost : _.template('<div class="post_content" messageid="<%= _id %>"><%= body %></div>'),
+        templatePicturePost : _.template('<div class="post_content" messageid="<%= _id %>"><a class="img-thumbnail" data-toggle="modal" data-target=".bs-example-modal-lg<%= _id  %>"><img src="' + _consts.RootURL + '/api/filedownloader?file=<%= picture_thumb_file_id %>" height="120" width="120" /></a></div></div><div class="modal fade bs-example-modal-lg<%= _id %>" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"><img src="' + _consts.RootURL + '/api/filedownloader?file=<%= picture_file_id %>" /></div></div>'),
+        templatePicturePostMediaView : _.template('<div class="post_content" messageid="<%= _id %>"><a href="javascript:_spikaApp.showMediaView(<%= _id %>)"><img src="' + _consts.RootURL + '/api/filedownloader?file=<%= picture_thumb_file_id %>" height="120" width="120" /></a></div>'),
+        templateEmoticonPost : _.template('<div class="post_content" messageid="<%= _id %>"><img src="<%= emoticon_image_url %>" height="120" width="120" /></div>'),
+        templateVoicePost : _.template('<div class="fa fa-play-circle-o fa-4x post_fa"></div><div class="post_content post_media" messageid="<%= _id %>"><%= body %><br /><a target="_blank" href="javascript:_spikaApp.showMediaView(<%= _id %>)">' + _lang.listenVoice + '</a></div>'),
+        templateVideoPost : _.template('<div class="fa fa-video-camera fa-4x post_fa"></div><div class="post_content post_media" messageid="<%= _id %>"><%= body %><br /><a target="_blank" href="javascript:_spikaApp.showMediaView(<%= _id %>)">' + _lang.watchVideo + '</a></div>'),
+        templateLocationPost : _.template('<div class="fa fa-location-arrow fa-4x post_fa"></div><div class="post_content post_media" messageid="<%= _id %>"><%= body %><br /><a target="_blank" href="http://maps.google.com/?q=<%= latitude %>,<%= longitude %>">' + _lang.openInGoogleMap + '</a></div>'),
         chatPageRowCount : 30,
         chatCurrentPage : 1,
         chatCurrentUserId : 0,
@@ -346,6 +29,39 @@
             
             var self = this;
             this.chatContentPool = [];
+            
+            $('#btn-chat-send').click(function(){
+                
+                if(!_chatManager.isInConversation()){
+                    return;
+                }
+                
+                _chatManager.sendTextMessage($('#textarea').val());
+                $('#textarea').val('');
+                $('#btn-chat-send').html('<i class="fa fa-refresh fa-spin"></i> Sending');
+                $('#btn-chat-send').attr('disabled','disabled');
+                
+            });
+            
+            $('#btn_text').click(function(){
+                $('#textarea').css('display','block');
+                $('#sticker').css('display','none');
+                $('#fileupload').css('display','none');
+                 
+            });
+            $('#btn_sticker').click(function(){
+                $('#textarea').css('display','none');
+                $('#sticker').css('display','block');
+                $('#fileupload').css('display','none');
+                 
+            });
+            $('#btn_file').click(function(){
+                $('#textarea').css('display','none');
+                $('#sticker').css('display','none');
+                $('#fileupload').css('display','block');
+                $('#fileupload-box').css('display','block');
+                $('#fileuploading').css('display','none');
+            });
             
             $("#conversation_block").scroll(function() {
                 
@@ -411,7 +127,24 @@
             }
             
         },
+        resetChat : function(){
+        
+            console.log('reset chat');
+            
+            if(this.chatCurrentUserId != 0){
+                
+                this.startPrivateChat(this.chatCurrentUserId);
+                
+            } else if(this.chatCurrentGroupId != 0){
+                
+                this.startGroupChat(this.chatCurrentGroupId);
+                
+            }
+
+        },
         startPrivateChat : function(userId){
+            
+            _spikaApp.showChatView();
             
             var self = this;
             
@@ -447,8 +180,9 @@
             });
             
         },
-        
         startGroupChat : function(groupId){
+            
+            _spikaApp.showChatView();
             
             var self = this;
             
@@ -460,7 +194,64 @@
             this.chatContentPool = [];
             
             self.isLoading = true;
+            
+            var cookieKey = "groupPassword" + groupId;
+            
+            // check password
+            _spikaClient.getGroup(groupId,function(data){
                 
+                if(!_.isEmpty(data.group_password)){
+        
+                    var savedPassword = Cookies(cookieKey);                
+                    
+                    console.log(savedPassword);
+                          
+                    alertManager.showPasswordDialog(function(password){
+                        
+                        var hash = CryptoJS.MD5(password);
+                        
+                        console.log(hash.toString().toLowerCase());
+                        console.log(data.group_password.toString().toLowerCase());
+                        
+                        if(hash.toString().toLowerCase() == data.group_password.toString().toLowerCase()){
+                            
+                            // save to cookie
+                            Cookies(cookieKey, password);
+                            
+                            self.enterToGroupChat(groupId);
+                            
+                        }else{
+                            
+                            alertManager.hideLoading();
+                            _.delay(function(){
+                                alertManager.showError('invalid password');
+                            }, 500) 
+
+                        }
+                        
+                    },savedPassword);
+                       
+                }else{
+                    
+                    self.enterToGroupChat(groupId);
+                    
+                }
+
+                
+            },function(errorString){
+            
+                alertManager.hideLoading();
+                alertManager.showError(_lang.messageGeneralError);
+            
+            });
+            
+
+               
+        },
+        enterToGroupChat : function(groupId){
+            
+            var self = this;
+            
             _spikaClient.loadGroupChat(groupId,this.chatPageRowCount,this.chatCurrentPage,function(data){
                 
                 sideBarManager.renderGroupProfile(groupId);
@@ -482,7 +273,7 @@
                 alertManager.showError(_lang.messageGeneralError);
             
             });
-               
+            
         },
         mergeConversation : function(data){
             
@@ -533,6 +324,9 @@
             for(var index = 0 ; index < _.size(this.chatContentPool) ; index++){
                 
                 var row = this.chatContentPool[index];
+                
+                console.log(row);
+                
                 var date = new Date(row.created*1000);
                 var dateStr = (date.getYear() + 1900)  + "." + (date.getMonth() + 1) + "." + date.getDate();
                 var hour = date.getHours();
@@ -576,35 +370,118 @@
                     html += this.templateChatBlockPerson({conversation:userPostsHtml});
                     userPostsHtml = '';
                 }
-
+                
+                var postHtml = '';
+                
                 if(messageType == 'location'){
-                    userPostsHtml += this.templateLocationPost(row);
+                    postHtml = this.templateLocationPost(row);
                 }else if(messageType == 'video'){
-                    userPostsHtml += this.templateVideoPost(row);
+                    postHtml = this.templateVideoPost(row);
                 }else if(messageType == 'voice'){
-                    userPostsHtml += this.templateVoicePost(row);
+                    postHtml = this.templateVoicePost(row);
                 }else if(messageType == 'emoticon'){
-                    userPostsHtml += this.templateEmoticonPost(row);
+                    postHtml = this.templateEmoticonPost(row);
                 }else if(messageType == 'image'){
-                    userPostsHtml += this.templatePicturePost(row);
+                    postHtml = this.templatePicturePostMediaView(row);
                 }else{
                     row.body = row.body.autoLink();
-                    userPostsHtml += this.templateTextPost(row);
+                    postHtml = this.templateTextPost(row);
                 }
-                 
+                
+                var deleteIconHtml = '';
+                
+                if(row.delete_at != 0){
+                    var deleteText = generateDeleteText(row.delete_at);
+                    deleteIconHtml = this.templateDeleteIcon({deletetime:deleteText});
+                }
+                
+                if(row.delete_after_shown != 0){
+                    var deleteText = "After read";
+                    deleteIconHtml = this.templateDeleteIcon({deletetime:deleteText});
+                }
+                
+                var unreadIcon = '';
+                
+                if(row.read_at == 0 && _spikaClient.currentUser._id == row.from_user_id){
+                    unreadIcon = this.templateUnreadIcon();
+                }
+                
+                var commentsIcon = '';
+                
+                if(row.comment_count > 0){
+                    commentsIcon = this.templateCommentsIcon(row);
+                }
+                                
+                userPostsHtml += this.templatePostHolder({
+                    content : postHtml,
+                    time : timeStr,
+                    user_id : row.from_user_id,
+                    message_id : row._id,
+                    deleteicon : deleteIconHtml,
+                    unreadicon : unreadIcon,
+                    commentsicon : commentsIcon
+                });
+                
                 lastDateStr = dateStr;               
                 lastRow = _.clone(row);
                 lastFromUserId = fromuserId;
-
+                
             }
             
             userPostsHtml = this.templateUserInfo(lastRow) + userPostsHtml;
             html += this.templateChatBlockPerson({conversation:userPostsHtml});
 
             $('#conversation_block').html(html);
-                        
+            $('.deleteIcon').tooltip();
+
+            
+            var className = ".userId" + _spikaClient.currentUser._id;
+            
+            for(var index = 0 ; index < _.size(this.chatContentPool) ; index++){
+            
+                var row = this.chatContentPool[index];
+                
+                if(_spikaClient.currentUser._id == row.from_user_id){
+                    
+                    var postRowSelector = "#message" + row._id;
+                    
+                    $(postRowSelector).contextMenu({
+                    
+                        menuSelector: "#contextMenu",
+                        menuSelected: function (invokedOn, selectedMenu) {
+                                                        
+                            var deleteMessageId = invokedOn.attr('messageid');
+                            var deleteType = selectedMenu.attr('tabindex');
+                            
+                            if(!_.isUndefined(deleteMessageId) && 
+                                !_.isEmpty(deleteType) && 
+                                !_.isUndefined(deleteMessageId) && 
+                                !_.isEmpty(deleteType)){
+                                    
+                                    _chatManager.deleteMessage(deleteMessageId,deleteType);
+                                    
+                            }
+                            
+                        },
+                    }); 
+                    
+                    // change cursor of my messages 
+                    $(postRowSelector).css('cursor','pointer');
+                    
+                }
+                             
+            }
+            
+   
+            $(".post").hover(function(){
+                $(this).css('background-color','#e5e5e5');
+            },function(){
+                $(this).css('background-color','#fff');
+            });
+   
         },
         isInConversation : function(){
+        
             if(this.chatCurrentUserId != 0) {
                 return true;
             } else if(this.chatCurrentGroupId != 0) {
@@ -837,6 +714,21 @@
                 });
             }
             
+        },
+        deleteMessage : function(messageId,deleteType){
+            
+            _spikaClient.setDelete(messageId,deleteType,function(data){
+                
+                console.log(_chatManager);
+                
+                _chatManager.resetChat();
+                
+            },function(errorString){
+                
+                console.log(errorString);
+                
+            });
+                
         }
             
     };
@@ -950,8 +842,8 @@
     // render side bar
     var sideBarManager = {
 
-        templateUserProflie : _.template('<div class="panel panel-primary"><div class="panel-heading"> Profile </div><div class="panel-body"><div class="person_detail"><span id="profile-picture"><%= img %></span><br /><span id="profile-name"><%= name %></span><br /><a href="' + _consts.RootURL + '/admin/user/view/<%= _id %>">See Profile</a></div><div id="profile-description"><%= about %></div></div><div class="panel-footer"></div></div>'),
-        templateGroupProflie : _.template('<div class="panel panel-primary"><div class="panel-heading"> Profile </div><div class="panel-body"><div class="person_detail"><span id="profile-picture"><%= img %></span><br /><span id="profile-name"><%= name %></span><br /><a href="' + _consts.RootURL + '/admin/group/view/<%= _id %>">See Profile</a></div><div id="profile-description"><%= description %></div></div><div class="panel-footer"></div></div>'),
+        templateUserProflie : _.template('<div class="panel panel-primary profile-panel"><div class="panel-heading"> Profile </div><div class="panel-body"><div class="person_detail"><span id="profile-picture"><%= img %></span><br /><span id="profile-name"><%= name %></span><br /><a href="' + _consts.RootURL + '/admin/user/view/<%= _id %>">See Profile</a></div><div id="profile-description"><%= about %></div></div><div class="panel-footer"></div></div>'),
+        templateGroupProflie : _.template('<div class="panel panel-primary profile-panel"><div class="panel-heading"> Profile </div><div class="panel-body"><div class="person_detail"><span id="profile-picture"><%= img %></span><br /><span id="profile-name"><%= name %></span><br /><a href="' + _consts.RootURL + '/admin/group/view/<%= _id %>">See Profile</a></div><div id="profile-description"><%= description %></div></div><div class="panel-footer"></div></div>'),
         avatarImage : _.template('<img src="' + _consts.RootURL + '/api/filedownloader?file=<%= avatar_thumb_file_id %>" alt="" width="240" height="240" class="person_img img-thumbnail" />'),
         avatarNoImage : _.template('<img src="http://dummyimage.com/60x60/e2e2e2/7a7a7a&text=nopicture" alt="" width="240" height="240" class="person_img img-thumbnail" />'),
 
@@ -1011,216 +903,3 @@
         
         
     };
-    
-    var fileUploadManager = {
-        handleFileSelect : function(event){
-            
-            event.preventDefault();
-            
-            var files = event.dataTransfer.files;
-            
-            if(_.isUndefined(files)){
-                return;
-            }
-            
-            var filesCount = files.length;
-            
-            if(filesCount > 1){
-                alertManager.showError(_lang.messageValidationErrorTooManyFiles);
-                return;
-            }
-            
-            var file = files[0];
-            var fileType = file.type;
-            
-            if(fileType != 'image/jpeg' && fileType != 'video/mp4' && fileType != 'audio/mp3'){
-                alertManager.showError(_lang.messageValidationErrorWrongFileType);
-                return;
-            }
-            
-            if(!_chatManager.isInConversation()){
-                return;
-            }
-            
-            // upload
-            $('#fileupload-box').css('display','none');
-            $('#fileuploading').css('display','block');
-            
-            $('#btn-chat-send').attr('disabled','disabled');
-            
-            
-            if(fileType == 'image/jpeg'){
-                _chatManager.sendMediaMessage(file,_spikaClient.MEDIA_TYPE_IMAGE,function(){
-                    $('#fileupload-box').css('display','block');
-                    $('#fileuploading').css('display','none');
-                });
-            }
-
-            if(fileType == 'video/mp4'){
-                _chatManager.sendMediaMessage(file,_spikaClient.MEDIA_TYPE_VIDEO,function(){
-                    $('#fileupload-box').css('display','block');
-                    $('#fileuploading').css('display','none');
-                });
-            }
-                        
-            if(fileType == 'audio/mp3'){
-                _chatManager.sendMediaMessage(file,_spikaClient.MEDIA_TYPE_AUDIO,function(){
-                    $('#fileupload-box').css('display','block');
-                    $('#fileuploading').css('display','none');
-                });
-            }
-                        
-        },
-        handleDragOver : function(event){
-            event.preventDefault();
-            $('#fileupload-box').css('border-color','#f88');
-        },
-        handleDragLeave : function(event){
-            event.preventDefault();
-            $('#fileupload-box').css('border-color','#888');
-        }
-    };
-    
-    var stickerViewManager = {
-        templateSticker : _.template('<li class="sticker-view" stickerId="<%= identifier %>"><img src="<%= stickerUrl %>" alt="" width="120" height="120" /></li>'),    
-        sending : false,
-        render : function(){
-            
-            var self = this;
-            
-            _spikaClient.loadStickers(function(data){
-
-                if(!_.isArray(data.rows))
-                    return;
-                
-                var html = '';
-                
-                _.each(data.rows,function(row,key,list){
-                    
-                    var value = row.value;
-                    
-                    if(_.isUndefined(value))
-                        return;
-                    
-                    value.stickerUrl =  _consts.RootURL + "/api/Emoticon/" + value._id;
-                    html += self.templateSticker(value);
-                          
-                });
-                
-                $('#sticker-holder').html(html);
-                
-                $('#sticker-holder').css('width',130 * data.rows.length);
-                
-                $('.sticker-view').click(function(){
-
-                    if(!_chatManager.isInConversation()){
-                        return;
-                    }
-            
-                    var stickerIdentifier = $(this).attr('stickerId');
-                    
-                    if(!_.isUndefined(stickerIdentifier)){
-                        
-                        if(self.sending == true)
-                            return;
-                            
-                        self.sending = true;
-                        $('.sticker-view').css('cursor','progress');
-                        
-                        _chatManager.sendSticker(stickerIdentifier,function(){
-                            self.sending = false;
-                            $('.sticker-view').css('cursor','pointer');
-                        });
-
-                        $('#btn-chat-send').html('<i class="fa fa-refresh fa-spin"></i> Sending');
-                        $('#btn-chat-send').attr('disabled','disabled');
-                        
-                    }
-                    
-                });
-                               
-
-            },function(errorString){
-                
-                
-            });
-            
-        }
-    };
-    
-    $(document).ready(function() {
-    
-        alertManager.showLoading();
-        
-        windowManager.init(window);
-        _chatManager.init();
-        
-        // login
-        _spikaClient.login(_loginedUser.email,_loginedUser.password,function(data){
-            
-            _loginedUser = data;
-            _spikaClient.setCurrentUser(_loginedUser);
-                        
-            navigationBarManager.renderContacts();
-            navigationBarManager.renderGroups();
-            
-            newMessageChecker.startUpdating();
-            
-            if(_targetUserId != 0){
-                _chatManager.startPrivateChat(_targetUserId);                
-            }else if(_targetGroupId != 0){
-                _chatManager.startGroupChat(_targetGroupId);                
-            }
-            
-            stickerViewManager.render();
-
-        },function(errorString){
-        
-            alertManager.showAlert(_lang.labelErrorDialogTitle,_lang.messageTokenError,_lang.labelCloseButton,function(){
-                location.href = "login";
-            });
-            
-        });
-        
-        $('#btn-chat-send').click(function(){
-            
-            if(!_chatManager.isInConversation()){
-                return;
-            }
-            
-            _chatManager.sendTextMessage($('#textarea').val());
-            $('#textarea').val('');
-            $('#btn-chat-send').html('<i class="fa fa-refresh fa-spin"></i> Sending');
-            $('#btn-chat-send').attr('disabled','disabled');
-            
-        });
-        
-        $('#btn_text').click(function(){
-            $('#textarea').css('display','block');
-            $('#sticker').css('display','none');
-            $('#fileupload').css('display','none');
-             
-        });
-        $('#btn_sticker').click(function(){
-            $('#textarea').css('display','none');
-            $('#sticker').css('display','block');
-            $('#fileupload').css('display','none');
-             
-        });
-        $('#btn_file').click(function(){
-            $('#textarea').css('display','none');
-            $('#sticker').css('display','none');
-            $('#fileupload').css('display','block');
-            $('#fileupload-box').css('display','block');
-            $('#fileuploading').css('display','none');
-        });
-        
-        // file dropzone setup
-        var dropZone = document.getElementById('fileupload-box');
-        dropZone.addEventListener('dragleave', fileUploadManager.handleDragLeave, false);
-        dropZone.addEventListener('dragover', fileUploadManager.handleDragOver, false);
-        dropZone.addEventListener('drop', fileUploadManager.handleFileSelect , false);
-        
-    });
-
-})();

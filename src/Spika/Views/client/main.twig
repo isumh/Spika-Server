@@ -17,12 +17,16 @@
     <script src="{{ROOT_URL}}/assets/js/jquery-1.10.2.js"></script>
     <script src="{{ROOT_URL}}/assets/js/bootstrap.min.js"></script>
     <script src="{{ROOT_URL}}/assets/js/plugins/metisMenu/jquery.metisMenu.js"></script>
+    
     <script src="{{ROOT_URL}}/assets/js/sb-admin.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/md5.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/cookies.min.js"></script>
     <script src="{{ROOT_URL}}/assets/js/underscore.js"></script>
-    <script src="{{ROOT_URL}}/assets/js/spika-client.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/spika-api-client.js"></script>
     
     <script type="text/javascript">
 
+        var _spikaApp = {};
         var _spikaClient = new SpikaClient('{{ROOT_URL}}/api');
         var _loginedUser = {{ loginedUser|json_encode()|raw }};
         var _lang = {{ lang|json_encode()|raw }};
@@ -45,8 +49,17 @@
         
     </script>
     
-    <script src="{{ROOT_URL}}/assets/js/spika-client-utils.js"></script>
-    <script src="{{ROOT_URL}}/assets/js/spika-client-app.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/spika-client-utils.js"></script>
+    
+    <!-- load spika web client -->
+    <script src="{{ROOT_URL}}/assets/js/webclient/window-manager.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/navigationbar.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/chat-view.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/alert-manager.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/file-uploader.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/stickes-view.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/media-view.js"></script>
+    <script src="{{ROOT_URL}}/assets/js/webclient/spika-client-app.js"></script>
 
 </head>
 
@@ -79,6 +92,33 @@
         </div>
     </div>
     
+    <div class="modal fade" id="passwordInputDialog" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title" id="modalTitle"></h4>
+          </div>
+          <div class="modal-body">
+                <input type="password" class="form-control" id="passwordField" placeholder="Enter password">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal" id="modalDismissButton"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- contect menu for messages-->
+    <ul id="contextMenu" class="dropdown-menu" role="menu" style="display:none" >
+        <li><a tabindex="1" href="#">Delete Now</a></li>
+        <li><a tabindex="2" href="#">Delete after 5 min</a></li>
+        <li><a tabindex="3" href="#">Delete after one day</a></li>
+        <li><a tabindex="4" href="#">Delete after one week</a></li>
+        <li><a tabindex="5" href="#">Delete after partner received</a></li>
+    </ul>
+
+
     <div id="wrapper">
 
         <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
@@ -160,70 +200,126 @@
         <!-- /.navbar-static-side -->
 
         <div id="page-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-					<div class="col-lg-9">
-						<div class="panel-default">
-						
-							<div id="conversation_block">
-                                
-							</div>
-							
-							<div id="chat_block" >
-							
-								<div class="panel panel-default">
-									<div class="panel-heading"><button class="btn btn-primary btn-sm" type="button" id="btn-chat-send">Send</button>
-									<ul>
-										<li>
-											<a class="btn btn-social-icon btn-github" id="btn_text">
-											    <i class="fa fa-font"></i>
-											</a>
-										</li>
-										<li>
-											<a class="btn btn-social-icon btn-github" id="btn_sticker">
-											    <i class="fa fa-smile-o"></i>
-											</a>
-										</li>
-										<li>
-											<a class="btn btn-social-icon btn-github" id="btn_file">
-											<i class="fa fa-paperclip"></i>
-											</a>
-										</li>
-									</ul>
-									</div>
-									<div class="panel-body">
-									    <div class="chatpanel" id="sticker" style="display:none">
-									        <ul id="sticker-holder">
-									            
-									        </ul>
-									    </div>
-									    <div class="chatpanel" id="fileupload" style="display:none">
-									        <div id="fileupload-box">
-									            Drop file here<br />
-                                                <span id="filetype-note">jpg/mp4/mp3 only</span>
-									        </div>
-									        <div id="fileuploading">
-                                                <div class="progress progress-striped active">
-                                                    <div class="progress-bar"  role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
-                                                        <span class="sr-only">Uploading</span>
-                                                    </div>
-                                                </div>
-                                                Uploading
-									        </div>
+            
+            <div class="row" id="submenu">
+                
+                <a class="btn submenubutton first" id="tab-chat-view" onclick="javascript:_spikaApp.showChatView()">
+                    Chat
+                </a>
+                
+                <a class="btn submenubutton"  id="tab-media-view"onclick="javascript:_spikaApp.showMediaView()">
+                    Media
+                </a>
+                
+            </div>
+            
+            <div class="row" id="media-view" style="display: none">
+                
+                <div class="col-lg-6">
+                    
+                    <div id="media-content-holder">
+                    </div>
+                    
+                </div>   
+                
+                <div class="col-lg-6">
 
-									    </div>
-										<textarea class="chatpanel" id="textarea" ></textarea>
-									</div>
+                    <div id="comments-content-holder">
+                        
+                        
+                        
+                        
+                    </div>
+                    
+					<div id="chat_block-comment" >
+					  
+						<div class="panel panel-default">
+							<div class="panel-heading"><button class="btn btn-primary btn-sm" type="button" id="btn-chat-send-comment">Send</button>
+							<ul>
+								<li>
+								</li>
+							</ul>
+							</div>
+							<div class="panel-body">
+								<textarea class="chatpanel" id="textarea-comment" ></textarea>
+							</div>
+						</div>
+					</div>
+
+                    
+                </div>   
+                
+            </div>
+            
+            <div class="row" id="chat-view">
+            
+				<div class="col-lg-9">
+				    
+					<div class="panel-default" id="main-view">
+					
+						<div id="conversation_block">
+                            
+						</div>
+						
+						<div id="chat_block" >
+						  
+							<div class="panel panel-default">
+								<div class="panel-heading"><button class="btn btn-primary btn-sm" type="button" id="btn-chat-send">Send</button>
+								<ul>
+									<li>
+										<a class="btn btn-social-icon btn-github" id="btn_text">
+										    <i class="fa fa-font"></i>
+										</a>
+									</li>
+									<li>
+										<a class="btn btn-social-icon btn-github" id="btn_sticker">
+										    <i class="fa fa-smile-o"></i>
+										</a>
+									</li>
+									<li>
+										<a class="btn btn-social-icon btn-github" id="btn_file">
+										<i class="fa fa-paperclip"></i>
+										</a>
+									</li>
+								</ul>
+								</div>
+								<div class="panel-body">
+								    <div class="chatpanel" id="sticker" style="display:none">
+								        <ul id="sticker-holder">
+								            
+
+								        </ul>
+								    </div>
+								    <div class="chatpanel" id="fileupload" style="display:none">
+								        <div id="fileupload-box">
+								            Drop file here<br />
+                                            <span id="filetype-note">jpg/mp4/mp3 only</span>
+								        </div>
+								        <div id="fileuploading">
+                                            <div class="progress progress-striped active">
+                                                <div class="progress-bar"  role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                                                    <span class="sr-only">Uploading</span>
+                                                </div>
+                                            </div>
+                                            Uploading
+								        </div>
+
+								    </div>
+									<textarea class="chatpanel" id="textarea" ></textarea>
 								</div>
 							</div>
 						</div>
 					</div>
-					<div class="col-lg-3" id="sidebar_block">
+				</div>
+				<div class="col-lg-3" id="sidebar_block">
 
-					</div>
-                </div>
+				</div>
+
             </div>
         </div>
     </div>
+    
+    
+        
 </body>
 </html>

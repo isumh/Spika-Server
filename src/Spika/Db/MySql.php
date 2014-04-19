@@ -63,6 +63,7 @@ class MySQL implements DbInterface
     {
         $user = $this->DB->fetchAssoc('select * from user where email = ? and password = ?',array($email,$password));
 
+        
         if (empty($user['_id'])) {
             $arr = array('message' => 'User not found!', 'error' => 'logout');
             return json_encode($arr);
@@ -788,6 +789,7 @@ class MySQL implements DbInterface
                 message.delete_flagged_at,
                 message.delete_after_shown,
                 message.read_at,
+                message.comment_count,
                 user.avatar_thumb_file_id as avatar_thumb_file_id
             from message
                 left join user on user._id = message.from_user_id
@@ -824,6 +826,7 @@ class MySQL implements DbInterface
                 message.delete_flagged_at,
                 message.delete_after_shown,
                 message.read_at,
+                message.comment_count,
                 user.avatar_thumb_file_id as avatar_thumb_file_id
             from message 
                 left join user on user._id = message.from_user_id
@@ -883,6 +886,7 @@ class MySQL implements DbInterface
                 message.delete_flagged_at,
                 message.delete_after_shown,
                 message.read_at,
+                message.comment_count,
                 user.avatar_thumb_file_id as avatar_thumb_file_id
             from message 
                 left join user on user._id = message.from_user_id
@@ -955,9 +959,18 @@ class MySQL implements DbInterface
                                         
         $filePath = $fileDir . "/" . $emoticon['file_id'];
         
-        $this->logger->addDebug(print_r($emoticon,true));
-        
         return file_get_contents($filePath);
+        
+    }
+
+    public function getEmoticonById($emoticonId){
+        
+        $fileDir = __DIR__.'/../../../'.FileController::$fileDirName;
+        
+        $emoticon = $this->DB->fetchAssoc('select file_id from emoticon where _id = ?',
+                                        array($emoticonId));
+                                        
+        return $emoticon;
         
     }
 
@@ -985,14 +998,23 @@ class MySQL implements DbInterface
         $commentData['created'] = time();
         
         if($this->DB->insert('media_comment',$commentData)){
+            
+            $result = $this->DB->executeupdate(
+                'update message set 
+                    comment_count = comment_count + 1
+                    where _id = ?',
+                array(
+                    $messageId));
+            
             return array(
                 'ok' => 1,
                 'id' => $this->DB->lastInsertId("_id")
             );
+            
         }else{
             return null;
         }
-
+        
         
     }
 
