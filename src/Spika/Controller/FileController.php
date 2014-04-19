@@ -39,6 +39,8 @@ class FileController extends SpikaBaseController
 
             $app['logger']->addDebug($filePath);
             
+            $app['logger']->addDebug($filePath);
+            
             if(file_exists($filePath)){
                     
                     $response = new Response();

@@ -1,4 +1,5 @@
 (function() {
+
   var autoLink,
     __slice = [].slice;
 
@@ -31,6 +32,122 @@
   String.prototype['autoLink'] = autoLink;
 
 }).call(this);
+
+(function ($, window) {
+
+    $.fn.contextMenu = function (settings) {
+
+        return this.each(function () {
+
+            // Open context menu
+            $(this).on("contextmenu", function (e) {
+                $(settings.menuSelector)
+                    .data("invokedOn", $(e.target))
+                    .show()
+                    .css({
+                        position: "absolute",
+                        left: getLeftLocation(e),
+                        top: getTopLocation(e)
+                    });
+
+                return false;
+            });
+
+            // click handler for context menu
+            $(settings.menuSelector).unbind();
+            $(settings.menuSelector).click(function (e) {
+                $(this).hide();
+
+                var $invokedOn = $(this).data("invokedOn");
+                var $selectedMenu = $(e.target);
+
+                settings.menuSelected.call($(this), $invokedOn, $selectedMenu);
+
+            });
+
+            //make sure menu closes on any click
+            $(document).click(function () {
+                $(settings.menuSelector).hide();
+            });
+        });
+
+        function getLeftLocation(e) {
+            var mouseWidth = e.pageX;
+            var pageWidth = $(window).width();
+            var menuWidth = $(settings.menuSelector).width();
+            
+            // opening menu would pass the side of the page
+            if (mouseWidth + menuWidth > pageWidth &&
+                menuWidth < mouseWidth) {
+                return mouseWidth - menuWidth;
+            } 
+            return mouseWidth;
+        }        
+        
+        function getTopLocation(e) {
+            var mouseHeight = e.pageY;
+            var pageHeight = $(window).height();
+            var menuHeight = $(settings.menuSelector).height();
+
+            // opening menu would pass the bottom of the page
+            if (mouseHeight + menuHeight > pageHeight &&
+                menuHeight < mouseHeight) {
+                return mouseHeight - menuHeight;
+            } 
+            return mouseHeight;
+        }
+
+    };
+})(jQuery, window);
+
+function generateCommentTimeStr(createdAt){
+    
+    createdAt = parseInt(createdAt);
+    var createdDate = new Date(createdAt * 1000);
+    
+    
+    var str = "";
+    
+    str += (createdDate.getYear() + 1900) + ".";
+    str += (createdDate.getMonth() + 1) + ".";
+    str += createdDate.getDate() + " ";
+    str += createdDate.getHours() + ".";
+    str += createdDate.getMinutes();
+    
+    return str;
+}
+
+function generateDeleteText(deleteAt){
+    
+    deleteAt = parseInt(deleteAt);
+    var now = parseInt(new Date().getTime() / 1000);
+    var differenceInSec = deleteAt - now;
+    
+    var minutes = parseInt(differenceInSec / 60);
+    
+    if(minutes > 60)
+        minutes = parseInt(differenceInSec % 60);
+        
+    var hours = parseInt(differenceInSec / 60 / 60);
+    if(hours > 24)
+        hours = parseInt(hours % 24);
+    
+    var days = parseInt(differenceInSec / 60 / 60 / 24);
+    
+    var deleteText = "";
+
+    if(minutes > 0)
+        deleteText = "in " + minutes + " minutes";
+    
+    if(hours > 0)
+        deleteText = "in " + hours + " hours";
+
+    if(days > 0)
+        deleteText = "in " + days + " days";
+    
+    
+    return deleteText;
+}
 
 function dataURItoBlob(dataURI) {
   // convert base64 to raw binary data held in a string
