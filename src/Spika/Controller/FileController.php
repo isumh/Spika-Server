@@ -14,6 +14,7 @@ namespace Spika\Controller;
 use Silex\Application;
 use Silex\ControllerProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
 
@@ -35,19 +36,28 @@ class FileController extends SpikaBaseController
                 
             $fileID = $request->get('file');
             $filePath = __DIR__.'/../../../'.FileController::$fileDirName."/".basename($fileID);
-            $app['monolog']->addDebug('hjf file cache0 '.$filePath);
+
+            $app['logger']->addDebug($filePath);
+            
             if(file_exists($filePath)){
-                $app['monolog']->addDebug('hjf file cache 1');
-                    $response->setPublic();
-                    $response->setLastModified(filemtime($filePath));
+                    
+                    $response = new Response();
+                    $lastModified = new \DateTime();
+                    $file = new \SplFileInfo($filePath);
+                    
+                    $lastModified = new \DateTime();
+                    $lastModified->setTimestamp($file->getMTime());
+                    $response->setLastModified($lastModified);
+                                        
                     if ($response->isNotModified($request)) {
-                        $app['monolog']->addDebug('hjf file cache 2');
+                        $response->prepare($request)->send();
                         return $response;
                     }
-    
+
                     $response = $app->sendFile($filePath);
-                    $response->setETag(md5($response->getContent()));
-                    $app['monolog']->addDebug('hjf new file');
+                    $currentDate = new \DateTime(null, new \DateTimeZone('UTC'));
+                    $response->setDate($currentDate)->prepare($request)->send();
+                    
                     return $response;
                     
             }else{
