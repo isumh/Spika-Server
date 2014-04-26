@@ -14,14 +14,14 @@
 define('ROOT_URL', isset($_ENV['SPIKA_ROOT_URL']) ? $_ENV['SPIKA_ROOT_URL'] : "http://172.19.67.71:8080/wwwroot");
 define('LOCAL_ROOT_URL', isset($_ENV['SPIKA_LOCAL_ROOT_URL']) ? $_ENV['SPIKA_LOCAL_ROOT_URL'] : "http://172.19.67.71:8080/wwwroot");
 define("MySQL_HOST", isset($_ENV['MySQL_HOST']) ? $_ENV['MySQL_HOST'] : "172.19.67.71");
-define('MySQL_DBNAME', isset($_ENV['MySQL_DBNAME']) ? $_ENV['MySQL_DBNAME'] : "hjfSpika1");
+define('MySQL_DBNAME', isset($_ENV['MySQL_DBNAME']) ? $_ENV['MySQL_DBNAME'] : "hjfSpika2");
 define('MySQL_USERNAME', isset($_ENV['MySQL_USERNAME']) ? $_ENV['MySQL_USERNAME'] : "root");
 define('MySQL_PASSWORD', isset($_ENV['MySQL_PASSWORD']) ? $_ENV['MySQL_PASSWORD'] : "public");
 /* end change here */
 
-define('AdministratorEmail', isset($_ENV['SPIKA_AdministratorEmail']) ? $_ENV['SPIKA_AdministratorEmail'] : "admin@spikaapp.com");
+define('AdministratorEmail', "admin@spikaapp.com");
 
-define('ENABLE_LOGGING', isset($_ENV['SPIKA_ENABLE_LOGGING']) ? $_ENV['SPIKA_ENABLE_LOGGING'] : true);
+define('ENABLE_LOGGING', true);
 
 define('SUPPORT_USER_ID', 1);
 define('ADMIN_LISTCOUNT', 10);
@@ -29,8 +29,8 @@ define("DEFAULT_LANGUAGE","en");
 
 define('HTTP_PORT', 80);
 
-define('TOKEN_VALID_TIME', isset($_ENV['SPIKA_TOKEN_VALID_TIME']) ? $_ENV['SPIKA_TOKEN_VALID_TIME'] : 60*60*24);
-define('PW_RESET_CODE_VALID_TIME', isset($_ENV['SPIKA_PW_RESET_CODE_VALID_TIME']) ? $_ENV['SPIKA_PW_RESET_CODE_VALID_TIME'] : 60*5);
+define('TOKEN_VALID_TIME', 60*60*24);
+define('PW_RESET_CODE_VALID_TIME', 60*5);
 
 define("DIRECTMESSAGE_NOTIFICATION_MESSAGE", "You got message from %s");
 define("GROUPMESSAGE_NOTIFICATION_MESSAGE", "%s posted message to group %s");
