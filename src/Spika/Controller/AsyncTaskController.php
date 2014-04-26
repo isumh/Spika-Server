@@ -71,8 +71,6 @@ class AsyncTaskController extends SpikaBaseController
                 $registrationIDs = array($toUser['android_push_token']);
                 //$app['monolog']->addDebug("begin to send push " . $app['pushnotification.options']['USEGCMPUSH']);
                 if($app['pushnotification.options']['USEGCMPUSH']){
-                //if(false){
-
                     $fields = array(
                                     'registration_ids' => $registrationIDs,
                                     'data' => array( 
@@ -101,7 +99,7 @@ class AsyncTaskController extends SpikaBaseController
                             )
                     );
                     //$baiduPayload=json_encode($baiduFields);
-                    $app['sendBaiduPush']($baiduFields,$app);
+                    $app['sendBaiduPush']($baiduFields,$app,"");
                 }
             }
 
@@ -114,9 +112,9 @@ class AsyncTaskController extends SpikaBaseController
             set_time_limit(60 * 10);
 
             $host = $request->getHttpHost();
-            if($host != "localhost"){
-                return $self->returnErrorResponse("invalid access to internal API");
-            }
+            // if($host != "localhost"){
+            //     return $self->returnErrorResponse("invalid access to internal API");
+            // }
 
             $requestBody = $request->getContent();
             $requestData = json_decode($requestBody,true);
@@ -147,22 +145,9 @@ class AsyncTaskController extends SpikaBaseController
             
             $fromUserData = $app['spikadb']->findUserById($message['from_user_id']);
             $toGroupData = $app['spikadb']->findGroupById($message['to_group_id']);
-            $pushMessage = sprintf(GROUPMESSAGE_NOTIFICATION_MESSAGE . "  test ",$fromUserData['name'],$toGroupData['name']);
-            
-            $fields = array(
-                            'registration_ids' => $androidTokens,
-                            'data' => array( 
-                                    "message" => $pushMessage, 
-                                    "fromUser" => $message['from_user_id'],
-                                    "fromUserName"=>$fromUserData['name'],
-                                    "type" => "group", 
-                                    "groupId" => $message['to_group_id']
-                                    ),
-                           );
 
-            $payload = json_encode($fields);
-            $app['sendGCM']($payload,$app);
-            
+            $pushMessage = sprintf(GROUPMESSAGE_NOTIFICATION_MESSAGE,$fromUserData['name'],$toGroupData['name']);
+
             $body = array();
             $body['aps'] = array('alert' => $pushMessage, 'badge' => 0, 'sound' => 'default', 'value' => "");
             $body['data'] =array('type' => 'group','to_group' => $message['to_group_id']);
@@ -170,6 +155,38 @@ class AsyncTaskController extends SpikaBaseController
 
             $app['sendProdAPN']($iosTokens,$payload);
             $app['sendDevAPN']($iosTokens,$payload);
+
+            if($app['pushnotification.options']['USEGCMPUSH']){
+                $fields = array(
+                                'registration_ids' => $androidTokens,
+                                'data' => array( 
+                                        "message" => $pushMessage, 
+                                        "fromUser" => $message['from_user_id'],
+                                        "fromUserName"=>$fromUserData['name'],
+                                        "type" => "group", 
+                                        "groupId" => $message['to_group_id']
+                                        ),
+                               );
+
+                $payload = json_encode($fields);
+                $app['sendGCM']($payload,$app);
+            } else {
+                $baiduFields=array(
+                        'userid'=>null,
+                        'tagName'=>$toGroupData['name'],
+                        'description'=>$pushMessage,
+                        'content'=>array(
+                                "message" => $pushMessage, 
+                                "fromUser" => $message['from_user_id'],
+                                "fromUserName"=>$fromUserData['name'],
+                                "type" => "group", 
+                                "groupId" => $message['to_group_id']
+                            )
+                    );
+                    //$baiduPayload=json_encode($baiduFields);
+                    $app['sendBaiduPush']($baiduFields,$app,$toGroupData['name']);
+            }
+            
             
             return "";
 

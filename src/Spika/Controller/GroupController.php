@@ -89,11 +89,16 @@ class GroupController extends SpikaBaseController
                 if($result == null)
                     return $self->returnErrorResponse("create group failed");
 
+$app['monolog']->addDebug('create group : ' . __FUNCTION__ );
                 if(isset($result['id'])){
                     $newGroupId = $result['id'];
                     $app['spikadb']->subscribeGroup($newGroupId,$ownerId);
+
+                    $user = $app['spikadb']->getUserById($ownerId);
+                    $app['setBaiduPushTag']($newGroupId,$user['android_push_token']);
+$app['monolog']->addDebug('setBaiduPushTag group : ' . __FUNCTION__ );
                 }else{
-                    return $self->returnErrorResponse("subscribe group");
+                    return $self->returnErrorResponse("please subscribe group");
                 }
                                 
                 return json_encode($result);
@@ -185,9 +190,11 @@ class GroupController extends SpikaBaseController
                 if($groupOwner != $currentUser['_id']){
                     return $self->returnErrorResponse("invalid user");
                 }
-
+$app['monolog']->addDebug('delete group : ' . __FUNCTION__ );
                 $result = $app['spikadb']->deleteGroup($groupId);
                 
+                $app['delBaiduPushTag']($groupId,"");
+$app['monolog']->addDebug('delBaiduPushTag group : ' . __FUNCTION__ );
                 return json_encode($result);
             }
             
@@ -298,6 +305,9 @@ class GroupController extends SpikaBaseController
                 $groupId = trim($requestBodyAry['group_id']);
 
                 $result = $app['spikadb']->subscribeGroup($groupId,$currentUser['_id']);
+
+                $user = $app['spikadb']->getUserById($currentUser['_id']);
+                $app['setBaiduPushTag']($groupId,$user['android_push_token']);
                 
                 if($result == null)
                         return $self->returnErrorResponse("failed to subscribe group");
@@ -326,7 +336,10 @@ class GroupController extends SpikaBaseController
                 $groupId = trim($requestBodyAry['group_id']);
 
                 $result = $app['spikadb']->unSubscribeGroup($groupId,$currentUser['_id']);
-                
+
+                $user = $app['spikadb']->getUserById($currentUser['_id']);
+                $app['delBaiduPushTag']($groupId,$user['android_push_token']);
+
                 if($result == null)
                     return $self->returnErrorResponse("failed to unsubscribe group");
                         

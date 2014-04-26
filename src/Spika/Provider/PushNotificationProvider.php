@@ -30,8 +30,14 @@ class PushNotificationProvider implements ServiceProviderInterface
             $self->sendGCM($app['pushnotification.options']['GCMAPIKey'],$payload,$app);
         });
 
-        $app['sendBaiduPush'] = $app->protect(function($payload) use ($self,$app) {           
-            $self->sendBaiduPush($app['pushnotification.options']['BAIDUAPIKEY'],$app['pushnotification.options']['BAIDUSECRETKEY'],$payload,$app);
+        $app['sendBaiduPush'] = $app->protect(function($payload,$tagname) use ($self,$app) {           
+            $self->sendBaiduPush($app['pushnotification.options']['BAIDUAPIKEY'],$app['pushnotification.options']['BAIDUSECRETKEY'],$payload,$tagname,$app);
+        });
+        $app['setBaiduPushTag'] = $app->protect(function($tagname,$userid) use ($self,$app) {           
+            $self->setBaiduPushTag($app['pushnotification.options']['BAIDUAPIKEY'],$app['pushnotification.options']['BAIDUSECRETKEY'],$tagname,$userid,$app);
+        });
+        $app['delBaiduPushTag'] = $app->protect(function($tagname,$userid) use ($self,$app) {           
+            $self->delBaiduPushTag($app['pushnotification.options']['BAIDUAPIKEY'],$app['pushnotification.options']['BAIDUSECRETKEY'],$tagname,$userid,$app);
         });
     }
 
@@ -189,17 +195,19 @@ class PushNotificationProvider implements ServiceProviderInterface
 
     }
 
-    function sendBaiduPush($apiKey,$secretKey,$messageContent,$app = null){
+    function sendBaiduPush($apiKey,$secretKey,$messageContent,$tagname,$app = null){
         $channel = new Channel ($apiKey, $secretKey) ;
         //推送消息到某个user，设置push_type = 1; 
         //推送消息到一个tag中的全部user，设置push_type = 2;
         //推送消息到该app中的全部user，设置push_type = 3;
         $push_type = 1; //推送单播消息
         $app['monolog']->addDebug('message Conten: ' .  $messageContent['userid'][0]);
-        if($push_type==1)
+        if(empty($tagname))
             $optional[Channel::USER_ID] = $messageContent['userid'][0]; //如果推送单播消息，需要指定user
-        else
-            $optional[Channel::TAG_NAME] = $tag_name;  //如果推送tag消息，需要指定tag_name
+        else {
+            $push_type = 2;
+            $optional[Channel::TAG_NAME] = $tagname;  //如果推送tag消息，需要指定tag_name
+        }
 
         //指定发到android设备
         $optional[Channel::DEVICE_TYPE] = 3;
@@ -207,11 +215,10 @@ class PushNotificationProvider implements ServiceProviderInterface
         $optional[Channel::MESSAGE_TYPE] = 0;
         //通知类型的内容必须按指定内容发送，示例如下：
         $fields = array(
-            'title'                     => "注意",
+            'title'                     => "",
             'notification_basic_style'  =>5,
             'open_type'         =>2,
             'description'               =>$messageContent['description'],//"新消息",
-            'customContent'   =>"test",
             'custom_content'        => $messageContent['content'],
         );
 
@@ -224,6 +231,48 @@ class PushNotificationProvider implements ServiceProviderInterface
         if ( false === $ret )
         {
             $app['monolog']->addDebug('ERROR NUMBER: ' . $channel->errno() . ' ERROR MESSAGE: ' . $channel->errmsg());
+        }
+        else
+        {
+            $app['monolog']->addDebug('SUCC, ' . __FUNCTION__ . ' OK!!!!! result:' . print_r($ret, true));
+        }
+        return $ret;
+    }
+
+    function setBaiduPushTag($apiKey,$secretKey,$tagname,$userid,$app = null){
+        $channel = new Channel ($apiKey, $secretKey) ;
+
+        $app['monolog']->addDebug('set tag: ' .  $tagname);
+        $optional=null;
+        if(!empty($userid))
+            $optional[Channel::USER_ID] = $userid;
+        $ret = $channel->setTag($tagname, $optional);
+
+        
+        if ( false === $ret )
+        {
+            $app['monolog']->addDebug('ERROR NUMBER: ' . __FUNCTION__ . $channel->errno() . ' ERROR MESSAGE: ' . $channel->errmsg());
+        }
+        else
+        {
+            $app['monolog']->addDebug('SUCC, ' . __FUNCTION__ . ' OK!!!!! result:' . print_r($ret, true));
+        }
+        return $ret;
+    }
+    
+    function delBaiduPushTag($apiKey,$secretKey,$tagname,$userid,$app = null){
+        $channel = new Channel ($apiKey, $secretKey) ;
+
+        $app['monolog']->addDebug('set tag: ' .  $tagname);
+        $optional=null;
+        if(!empty($userid))
+            $optional[Channel::USER_ID] = $userid;
+        $ret = $channel->deleteTag($tagname, $optional);
+
+        
+        if ( false === $ret )
+        {
+            $app['monolog']->addDebug('ERROR NUMBER: ' . __FUNCTION__ . $channel->errno() . ' ERROR MESSAGE: ' . $channel->errmsg());
         }
         else
         {

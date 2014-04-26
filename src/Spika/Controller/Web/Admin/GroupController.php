@@ -181,6 +181,14 @@ class GroupController extends SpikaWebBaseController
                     $self->loginedUser['_id']
                 );
 
+                $user = $app['spikadb']->getUserById($self->loginedUser['_id']);
+                if(empty($user['android_push_token'] )){
+                    $app['setBaiduPushTag']($result['id'],"");
+                } else {
+                    $app['setBaiduPushTag']($result['id'], $user['android_push_token']);
+                }
+$app['monolog']->addDebug('add group : ' . __FUNCTION__ );
+
                 return $app->redirect(ROOT_URL . '/admin/group/list?msg=messageGroupAdded');
 
             }
@@ -206,12 +214,26 @@ class GroupController extends SpikaWebBaseController
             
             if($action == 'subscribe'){
                 $self->app['spikadb']->subscribeGroup($group['_id'],$self->loginedUser['_id']);
+
+                $user = $app['spikadb']->getUserById($self->loginedUser['_id']);
+                if(!empty($user['android_push_token'] )){
+                    $app['setBaiduPushTag']($group['_id'], $user['android_push_token']);
+                }
+$app['monolog']->addDebug('subscribe group : ' . __FUNCTION__ );
+
                 $self->setInfoAlert($self->language['messageSubscribed']);
                 $self->updateLoginUserData();
             }
             
             if($action == 'unsubscribe'){
                 $self->app['spikadb']->unSubscribeGroup($group['_id'],$self->loginedUser['_id']);
+
+                $user = $app['spikadb']->getUserById($self->loginedUser['_id']);
+                if(!empty($user['android_push_token'] )){
+                    $app['delBaiduPushTag']($group['_id'],$user['android_push_token']);
+                }
+$app['monolog']->addDebug('unsubscribe group : ' . __FUNCTION__ );
+
                 $self->setInfoAlert($self->language['messageUnsubscribed']);
                 $self->updateLoginUserData();
             }
@@ -297,6 +319,13 @@ class GroupController extends SpikaWebBaseController
             if($action == 'unsubscribeUser'){
                 $userId = $request->get('value');
                 $self->app['spikadb']->unSubscribeGroup($group['_id'],$userId);
+
+                $user = $app['spikadb']->getUserById($userId);
+                if(!empty($user['android_push_token'] )){
+                    $app['delBaiduPushTag']($group['_id'],$user['android_push_token']);
+                }
+$app['monolog']->addDebug('unsubscribe group : ' . __FUNCTION__ );
+
                 $self->setInfoAlert($self->language['messageKicked']);
                 $self->updateLoginUserData();
                 $tab = 'users';
@@ -524,6 +553,11 @@ class GroupController extends SpikaWebBaseController
             
             if(isset($formValues['submit_delete'])){
                 $self->app['spikadb']->deleteGroup($id);
+
+
+                $app['delBaiduPushTag']($id,"");
+$app['monolog']->addDebug('delete group : ' . __FUNCTION__ );
+
                 return $app->redirect(ROOT_URL . '/admin/group/list?msg=messageGroupDeleted');
             }else{
                 return $app->redirect(ROOT_URL . '/admin/group/list');
@@ -567,6 +601,12 @@ class GroupController extends SpikaWebBaseController
             
             $self->app['spikadb']->unSubscribeGroup($groupId,$userId);
             
+            $user = $app['spikadb']->getUserById($userId);
+            if(!empty($user['android_push_token'] )){
+                $app['delBaiduPushTag']($groupId,$user['android_push_token']);
+            }
+$app['monolog']->addDebug('unsubscribe group : ' . __FUNCTION__ );
+
             return $app->redirect(ROOT_URL . "/admin/group/users/{$groupId}?msg=messageRemoveUser");
             
         })->before($app['adminBeforeTokenChecker']);
