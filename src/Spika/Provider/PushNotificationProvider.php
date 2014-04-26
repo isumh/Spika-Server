@@ -201,8 +201,9 @@ class PushNotificationProvider implements ServiceProviderInterface
         //推送消息到一个tag中的全部user，设置push_type = 2;
         //推送消息到该app中的全部user，设置push_type = 3;
         $push_type = 1; //推送单播消息
-        $app['monolog']->addDebug('message Conten: ' .  $messageContent['userid'][0]);
-        if(empty($tagname))
+        //$app['monolog']->addDebug('tagename: ' . $tagename . ' ' . (isset($tagname)?'tag true':'tag false'));
+
+        if(isset($tagname))
             $optional[Channel::USER_ID] = $messageContent['userid'][0]; //如果推送单播消息，需要指定user
         else {
             $push_type = 2;
@@ -226,15 +227,15 @@ class PushNotificationProvider implements ServiceProviderInterface
         $message = json_encode($fields);
         
         $message_key = "msg_key";
-        $app['monolog']->addDebug("before hjf: " . $apiKey . " " . $secretKey);
+        //$app['monolog']->addDebug("before hjf : " . $apiKey . " " . print_r($message, true) . " " . $push_type);
         $ret = $channel->pushMessage ( $push_type, $message, $message_key, $optional) ;
         if ( false === $ret )
         {
-            $app['monolog']->addDebug('ERROR NUMBER: ' . $channel->errno() . ' ERROR MESSAGE: ' . $channel->errmsg());
+            //$app['monolog']->addDebug('ERROR NUMBER: ' . $channel->errno() . ' ERROR MESSAGE: ' . $channel->errmsg());
         }
         else
         {
-            $app['monolog']->addDebug('SUCC, ' . __FUNCTION__ . ' OK!!!!! result:' . print_r($ret, true));
+            //$app['monolog']->addDebug('SUCC, ' . __FUNCTION__ . ' OK!!!!! result:' . print_r($ret, true));
         }
         return $ret;
     }

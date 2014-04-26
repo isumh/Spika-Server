@@ -99,7 +99,7 @@ class AsyncTaskController extends SpikaBaseController
                             )
                     );
                     //$baiduPayload=json_encode($baiduFields);
-                    $app['sendBaiduPush']($baiduFields,$app,"");
+                    $app['sendBaiduPush']($baiduFields,$app);
                 }
             }
 

@@ -11,9 +11,10 @@ namespace Spika\BaiduPush;
  * @package
  */
 
+use Spika\BaiduPush\BaeBase;
 use Spika\BaiduPush\RequestCore;
 use Spika\BaiduPush\ChannelException;
-use Spika\BaiduPush\BaeBase;
+
 
 /**
  * 
