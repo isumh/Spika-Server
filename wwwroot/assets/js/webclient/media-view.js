@@ -31,6 +31,8 @@
                 
                 },function(errorString){
                     
+                    _spikaApp.handleError(errorString,"loadComments");
+
                 });
 
                 $('#textarea-comment').val('');
@@ -96,7 +98,7 @@
                 }
 
             },function(errorString){
-            
+                _spikaApp.handleError(errorString,"getMessage");
                 
             });
 
@@ -148,7 +150,7 @@
                 
             },function(errorString){
             
-                
+                _spikaApp.handleError(errorString,"getMediaComments");
             });
             
         }

@@ -53,7 +53,9 @@
                 $('#textarea').css('display','none');
                 $('#sticker').css('display','block');
                 $('#fileupload').css('display','none');
-                 
+                
+                stickerViewManager.render();
+
             });
             $('#btn_file').click(function(){
                 $('#textarea').css('display','none');
@@ -104,6 +106,8 @@
                     
                 },function(errorString){
     
+                    _spikaApp.handleError(errorString,"loadUserChat");
+
                 });
                 
             }
@@ -121,6 +125,8 @@
 
 
                 },function(errorString){
+
+                    _spikaApp.handleError(errorString,"loadGroupChat");
     
                 });
                 
@@ -174,8 +180,7 @@
             },function(errorString){
             
                 alertManager.hideLoading();
-                
-                alertManager.showError(_lang.messageGeneralError);
+                _spikaApp.handleError(errorString,"loadUserChat");
             
             });
             
@@ -241,7 +246,7 @@
             },function(errorString){
             
                 alertManager.hideLoading();
-                alertManager.showError(_lang.messageGeneralError);
+                _spikaApp.handleError(errorString,"getGroup");
             
             });
             
@@ -269,8 +274,7 @@
             },function(errorString){
             
                 alertManager.hideLoading();
-                
-                alertManager.showError(_lang.messageGeneralError);
+                _spikaApp.handleError(errorString,"loadGroupChat");
             
             });
             
@@ -524,7 +528,8 @@
                                         
             },function(errorString){
             
-                alertManager.showError(_lang.messageGeneralError);
+
+                _spikaApp.handleError(errorString,"postTextMessage");
                 
             });
                 
@@ -576,14 +581,14 @@
                     
                                 },function(errorString){
                                 
-                                    alertManager.showError(_lang.messageGeneralError);
+                                    _spikaApp.handleError(errorString,"postMediaMessage");
                                     listener();
                                     
                                 }); // post message
                                                         
                             },function(errorString){
                             
-                                alertManager.showError(_lang.messageGeneralError);
+                                _spikaApp.handleError(errorString,"fileUpload");
                                 listener();
                                 
                             });// upload thumb
@@ -591,7 +596,7 @@
                                                     
                         },function(errorString){
                         
-                            alertManager.showError(_lang.messageGeneralError);
+                            _spikaApp.handleError(errorString,"fileUpload");
                             listener();
                             
                         });// upload image
@@ -621,14 +626,14 @@
         
                     },function(errorString){
                     
-                        alertManager.showError(_lang.messageGeneralError);
+                        _spikaApp.handleError(errorString,"postMediaMessage");
                         listener();
                         
                     }); // post message
                                             
                 },function(errorString){
                 
-                    alertManager.showError(_lang.messageGeneralError);
+                    _spikaApp.handleError(errorString,"fileUpload");
                     listener();
                     
                 });// upload thumb
@@ -673,7 +678,7 @@
                 
             },function(errorString){
             
-                alertManager.showError(_lang.messageGeneralError);
+                _spikaApp.handleError(errorString,"postStickerMessage");
                 listener();
                 
             }); // post message
@@ -698,7 +703,7 @@
                     self.render();
                     self.scrollToBottom();
                 },function(errorString){
-    
+                    _spikaApp.handleError(errorString,"loadUserChat");
                 });
                 
             } else if(self.chatCurrentGroupId != 0){
@@ -710,7 +715,7 @@
                     self.render();
                     self.scrollToBottom();
                 },function(errorString){
-    
+                    _spikaApp.handleError(errorString,"loadGroupChat");
                 });
             }
             
@@ -725,7 +730,7 @@
                 
             },function(errorString){
                 
-                console.log(errorString);
+                _spikaApp.handleError(errorString,"setDelete");
                 
             });
                 
@@ -832,7 +837,9 @@
             },function(errorMessage){
             
                 alertManager.hideLoading();
-                
+                _spikaApp.handleError(errorMessage,"getActivitySummary"); 
+
+
             });
             
         }
@@ -868,7 +875,8 @@
             },function(errorString){
                 
                 alertManager.hideLoading();
-                
+                _spikaApp.handleError(errorString,"getUser");
+
             });
 
             
@@ -895,6 +903,7 @@
             },function(errorString){
                 
                 alertManager.hideLoading();
+                _spikaApp.handleError(errorString,"getGroup");
                 
             });
 
